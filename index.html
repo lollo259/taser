@@ -55,7 +55,7 @@ button:active{background:#fff;color:#000}
 <label>seed<input id="mSeed" placeholder="random"></label>
 <label>weather<select id="mWx"><option value="seed">from seed</option><option value="rain">rain</option><option value="dust">dust</option></select></label>
 <label>auto-fire (touch)<select id="mAuto"><option value="1">on</option><option value="0">off</option></select></label>
-<label>mission<select id="mMis"><option value="random">random</option><option value="eliminate">eliminate target</option><option value="rescue">rescue hostages</option><option value="steal">steal evidence</option><option value="escape">escape</option><option value="crime">crime scene</option></select></label><label>time<select id="mTime"><option value="seed">from seed</option><option value="day">day</option><option value="night">night</option></select></label><label>pace<select id="mPace"><option value="slow">slow · breathable</option><option value="normal">normal</option></select></label><label>limbs on revive<select id="mLimb"><option value="0">stay lost</option><option value="1">regrow</option></select></label><label>endless waves<select id="mEnd"><option value="1">on</option><option value="0">off</option></select></label>
+<label>mission<select id="mMis"><option value="random">random</option><option value="eliminate">eliminate target</option><option value="rescue">rescue hostages</option><option value="steal">steal evidence</option><option value="escape">escape</option><option value="crime">crime scene</option></select></label><label>time<select id="mTime"><option value="seed">from seed</option><option value="day">day</option><option value="night">night</option></select></label><label>pace<select id="mPace"><option value="slow">slow · breathable</option><option value="normal">normal</option></select></label><label>endless waves<select id="mEnd"><option value="1">on</option><option value="0">off</option></select></label>
 <button id="mPlay">play</button><div class="row"><button id="mEdit">map editor</button><button id="mCustom">play saved map</button></div></div></div>
 <div id="intg" style="display:none;position:fixed;left:50%;bottom:64px;transform:translateX(-50%);flex-direction:column;align-items:center;gap:6px;background:#000c;border:1px solid #fff4;border-radius:10px;padding:10px 14px;font:12px Helvetica;color:#fff;z-index:6">
 <div><b>interrogate</b> · <span id="iLbl">pressure</span></div>
@@ -503,7 +503,7 @@ $('ePlay').onclick=()=>{localStorage.setItem('taser-map',ser(edit.m));newGame(JS
 $('eBack').onclick=()=>{mode='menu';show()};
 // ---------- ui ----------
 function show(){const pl=mode=='play';$('menu').classList.toggle('hide',mode!='menu');for(const id of ['tl','act','wsw'])$(id).classList.toggle('hide',!pl);if(!pl){$('bar').classList.add('hide');$('help').classList.add('hide')}$('ed').style.display=mode=='edit'?'flex':'none';$('over').classList.toggle('hide',mode!='over');if(!pl)$('dead').style.display='none'}
-function opts(){return{weapon:$('mW').value,enemies:Math.max(0,+$('mE').value||0),size:+$('mS').value,seed:$('mSeed').value||String(Math.random()*1e9|0),weather:$('mWx').value,endless:$('mEnd').value=='1',mission:$('mMis').value,regrow:$('mLimb').value=='1',pace:$('mPace').value,time:$('mTime').value}}
+function opts(){return{weapon:$('mW').value,enemies:Math.max(0,+$('mE').value||0),size:+$('mS').value,seed:$('mSeed').value||String(Math.random()*1e9|0),weather:$('mWx').value,endless:$('mEnd').value=='1',mission:$('mMis').value,regrow:false,pace:$('mPace').value,time:$('mTime').value}}
 $('mPlay').onclick=()=>{const o=opts();newGame(genMap(o.size,o.seed),o)};
 $('mCustom').onclick=()=>{const s=localStorage.getItem('taser-map');if(!s){$('mCustom').textContent='no saved map yet';return}newGame(JSON.parse(s),opts())};
 $('bAdd').onclick=()=>addEnemies(5);
@@ -635,7 +635,7 @@ function limbDecal(o,k){const g=G.dx,a=Math.random()*TAU,d=18+Math.random()*30,x
  blood(x,y,7);g.save();g.translate(x,y);g.rotate(Math.random()*TAU);g.lineWidth=2.2;g.strokeStyle='#111';g.fillStyle=leg?pal.leg:pal.body;g.beginPath();g.roundRect(-11,-4,22,8,4);g.fill();g.stroke();
  g.fillStyle=pal.skin;g.beginPath();g.arc(12,0,leg?4:3.6,0,TAU);g.fill();g.stroke();g.fillStyle='#8a0f0f';g.beginPath();g.arc(-11,0,3.4,0,TAU);g.fill();g.fillStyle='#eee';g.beginPath();g.arc(-11,0,1.3,0,TAU);g.fill();g.restore();
  for(let q=0;q<14;q++)part(o.x,o.y,Math.cos(a)*(100+Math.random()*200),Math.sin(a)*(100+Math.random()*200),.5,'#8a1010',2.5,.3)}
-function sever(o,type,d){const L=limbs(o),opts=Object.keys(L).filter(k=>L[k]);if(!opts.length)return;const k=opts[Math.random()*opts.length|0];L[k]=0;o.bleed=(o.bleed||0)+6;limbDecal(o,k);
+function sever(o,type,d){return;const L=limbs(o),opts=Object.keys(L).filter(k=>L[k]);if(!opts.length)return;const k=opts[Math.random()*opts.length|0];L[k]=0;o.bleed=(o.bleed||0)+6;limbDecal(o,k);
  txt(o.x,o.y-40,(o===G.p?'lost ':'')+LN[k],o===G.p?'#ff8080':'#ffb0b0');G.shake=Math.max(G.shake,o===G.p?12:5);
  if(o!==G.p&&k[1]=='a'&&WEAP[o.w]&&!WEAP[o.w].melee&&o.w!='fists'){G.items.push({x:o.x+20,y:o.y+10,t:o.w});o.w=arms(o)?'knife':'fists';txt(o.x,o.y-26,'dropped weapon','#ccc')}
  if(o===G.p&&k[1]=='a'&&arms(o)<2&&TWOH.includes(cw())){const i=o.inv.findIndex(t=>!TWOH.includes(t));o.cur=Math.max(0,i)}}
@@ -646,7 +646,7 @@ function wound(o,d,type,src){if(o.hp<=0&&o!==G.p)return;(o.wounds||(o.wounds=[])
 const _hit=hit;hit=function(e,d,type,src){if(e&&e.shield&&e.hp>0&&src&&!WEAP[type]?.melee&&type!='explosion'&&type!='briefcase'&&type!='taser'){const a=Math.atan2(src.y-e.y,src.x-e.x);if(Math.abs(angd(a,e.a))<1.05){for(let k=0;k<5;k++)part(e.x+Math.cos(a)*16,e.y+Math.sin(a)*16,Math.cos(a+(Math.random()-.5)*2)*180,Math.sin(a+(Math.random()-.5)*2)*180,.2,'#ffe0a0',1.5,.9);e.st='chase';e.alert=3;e.lx=G.p.x;e.ly=G.p.y;return}}
  if(e===G.p&&(!e.alive||e.immune.has(type)))return _hit(e,d,type,src);const before=e.hp;_hit(e,d,type,src);if(e.hp<before&&(e===G.p||G.en.includes(e)||e.kind))wound(e,d,type,src)}
 const _heal=heal;heal=function(){const p=G.p,h=p.heals;_heal();if(p.heals<h){p.bleed=0;p.blood=Math.min(100,(p.blood??100)+30);txt(p.x,p.y-40,'bandaged','#9f9')}};
-const _rev=revive;revive=function(cp){const p=G.p;const was=p.alive;_rev(cp);if(!was&&p.alive){if(G.opt.regrow){p.limbs={la:1,ra:1,ll:1,rl:1};p.wounds=[];txt(p.x,p.y-56,'limbs regrown','#7fd6ff')}p.blood=Math.max(25,(p.blood??100));p.hp=Math.min(p.hp,p.blood);p.bleed=Math.max(p.bleed||0,0)}};
+const _rev=revive;revive=function(cp){const p=G.p;const was=p.alive;_rev(cp);if(!was&&p.alive){p.blood=Math.max(25,(p.blood??100));p.hp=Math.min(p.hp,p.blood);p.bleed=Math.max(p.bleed||0,0)}};
 const _fire=fire;fire=function(o,isP){if(o===G.p&&isP){const t=cw();if(arms(o)<2&&TWOH.includes(t)){if(o.cd<=0){txt(o.x,o.y-30,'needs two arms','#ff8080');o.cd=.6}return}if(arms(o)==0&&t!='fists'&&!WEAP[t].tendril){return}
   const cd=o.cd;_fire(o,isP);if(o.cd>cd&&arms(o)<2)o.cd*=1.6;return}if(o.dog){return _fire(o,isP)}_fire(o,isP)};
 function upF(dt){const p=G.p;if(p.blood==null)p.blood=100;
