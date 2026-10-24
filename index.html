@@ -1048,7 +1048,7 @@ addEventListener('pointerdown',()=>{MUS._ok=1;musSync()},{capture:true});setInte
 {const b=document.createElement('button');b.id='aRet';b.className='rb';b.textContent='hide';b.style.cssText='display:none;right:200px;bottom:150px;width:54px;height:54px;font-size:13px';b.onclick=()=>retract();$('act').appendChild(b)}
 
 // ===== O: BLACKBOXXX procedural locomotion (verlet legs), invulnerable, momentum =====
-const LEGN=7,SEGN=9,SEGL=9;
+const LEGN=12,SEGN=10,SEGL=14;
 function legsInit(p){p.legs=[];p.cv={x:0,y:0};p.ca=p.a;p.cw=0;for(let k=0;k<LEGN;k++){const a=k/LEGN*TAU,pts=[];for(let i=0;i<SEGN;i++){const x=p.x+Math.cos(a)*(12+i*SEGL*.7),y=p.y+Math.sin(a)*(12+i*SEGL*.7);pts.push({x,y,ox:x,oy:y})}p.legs.push({a,pts,st:'free',gx:0,gy:0,t:Math.random(),ph:Math.random()*TAU})}}
 function legRoot(p,L){const a=p.ca+L.a,sc=1+CS(p).grow*.02;return{x:p.x+Math.cos(a)*13*sc,y:p.y+Math.sin(a)*13*sc}}
 function solid(x,y){return tileAt(G.m,x,y)!=0}
@@ -1099,7 +1099,8 @@ const _thO=throwMov;throwMov=function(p,e){_thO(p,e);const m=G.barrels.includes(
 // draw: case rotated by its own tumbling angle, legs as tapered chains
 blobDraw=function(p,c){const cs=CS(p),sc=2.3+cs.grow*.05,g=X;if(!p.legs)legsInit(p);
  g.lineCap='round';g.lineJoin='round';
- for(const pass of [0,1])for(const L of p.legs){for(let i=0;i<SEGN-1;i++){const a=L.pts[i],b=L.pts[i+1],w=(7.5-i*.65)*(1+cs.grow*.02);g.beginPath();g.moveTo(a.x-c.x,a.y-c.y);g.lineTo(b.x-c.x,b.y-c.y);g.strokeStyle=pass?'#1a0a10':'#e9e2dc';g.lineWidth=pass?w:w+2.6;g.stroke()}
+ if(!p.ret){g.fillStyle='#e9e2dc';for(const pass of [0,1]){g.fillStyle=pass?'#1a0a10':'#e9e2dc';g.beginPath();for(let k=0;k<=40;k++){const a=k/40*TAU,rr=(pass?48:52)+Math.sin(a*5+G.t*3.1)*7+Math.sin(a*3-G.t*2.3)*5;const X1=p.x-c.x+Math.cos(a)*rr,Y1=p.y-c.y+Math.sin(a)*rr;k?g.lineTo(X1,Y1):g.moveTo(X1,Y1)}g.fill()}}
+ for(const pass of [0,1])for(const L of (p.ret?[]:p.legs)){for(let i=0;i<SEGN-1;i++){const a=L.pts[i],b=L.pts[i+1],w=(26-i*2.1)*(1+cs.grow*.02);g.beginPath();g.moveTo(a.x-c.x,a.y-c.y);g.lineTo(b.x-c.x,b.y-c.y);g.strokeStyle=pass?'#1a0a10':'#e9e2dc';g.lineWidth=pass?w:w+2.6;g.stroke()}
   if(pass){g.strokeStyle=`rgba(255,50,80,${.3+Math.min(.6,cs.grow*.03)})`;g.lineWidth=1;g.beginPath();g.moveTo(L.pts[0].x-c.x,L.pts[0].y-c.y);for(const q of L.pts)g.lineTo(q.x-c.x,q.y-c.y);g.stroke();if(L.st=='grip'){g.fillStyle='#5a1420';g.beginPath();g.arc(L.gx-c.x,L.gy-c.y,2.5,0,TAU);g.fill()}}}
  g.save();g.translate(p.x-c.x,p.y-c.y);g.fillStyle='rgba(0,0,0,.4)';g.beginPath();g.ellipse(5,7,12*sc,10*sc,0,0,TAU);g.fill();
  g.rotate(p.ca);const br=1+Math.sin(G.t*(2+cs.hunger*4))*.04;g.scale(sc*br,sc*br);
@@ -1108,4 +1109,6 @@ blobDraw=function(p,c){const cs=CS(p),sc=2.3+cs.grow*.05,g=X;if(!p.legs)legsInit
  if(!p.ret){g.fillStyle='rgba(180,20,50,.7)';g.beginPath();g.ellipse(9,0,2.5,9,0,0,TAU);g.fill()}
  g.fillStyle='#b8901a';g.fillRect(8,-3,2,6);g.fillRect(-2,-12.5,4,2);g.restore()};
 
+// ===== P: closed case = totally still =====
+{const _upP=update;update=function(dt){const p=G.p;if(!p.mon||!p.ret)return _upP(dt);const ox=p.x,oy=p.y,oa=p.ca;_upP(dt);p.x=ox;p.y=oy;p.ca=oa;p.cw=0;if(p.cv){p.cv.x=0;p.cv.y=0}if(p.legs)for(const L of p.legs){L.st='free';for(const q of L.pts){q.x=q.ox=ox;q.y=q.oy=oy}}}}
 </script></body></html>
