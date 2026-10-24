@@ -46,6 +46,12 @@ button:active{background:#fff;color:#000}
 <label>weather<select id="mWx"><option value="seed">from seed</option><option value="rain">rain</option><option value="dust">dust</option></select></label>
 <label>mission<select id="mMis"><option value="random">random</option><option value="eliminate">eliminate target</option><option value="rescue">rescue hostages</option><option value="steal">steal evidence</option><option value="escape">escape</option><option value="crime">crime scene</option></select></label><label>time<select id="mTime"><option value="seed">from seed</option><option value="day">day</option><option value="night">night</option></select></label><label>limbs on revive<select id="mLimb"><option value="0">stay lost</option><option value="1">regrow</option></select></label><label>endless waves<select id="mEnd"><option value="1">on</option><option value="0">off</option></select></label>
 <button id="mPlay">play</button><div class="row"><button id="mEdit">map editor</button><button id="mCustom">play saved map</button></div></div></div>
+<div id="intg" style="display:none;position:fixed;left:50%;bottom:64px;transform:translateX(-50%);flex-direction:column;align-items:center;gap:6px;background:#000c;border:1px solid #fff4;border-radius:10px;padding:10px 14px;font:12px Helvetica;color:#fff;z-index:6">
+<div><b>interrogate</b> · <span id="iLbl">pressure</span></div>
+<div style="width:220px;height:6px;background:#333"><div id="iBar" style="height:6px;width:0;background:#ffd27a"></div></div>
+<div style="width:220px;height:4px;background:#333"><div id="iStr" style="height:4px;width:0;background:#e02a2a"></div></div>
+<div style="display:flex;gap:8px"><button id="iThr" class="ib">threaten · z</button><button id="iSlp" class="ib">slap · x</button><button id="iTas" class="ib">taser · c</button></div></div>
+<style>.ib{background:#111;color:#fff;border:1px solid #fff8;border-radius:8px;padding:8px 12px;font:bold 12px Helvetica;min-height:40px}</style>
 <div id="over" class="hide"><div class="box"><h2>mission ended</h2><div id="ovT" style="color:#bbb"></div><button id="oMenu">menu</button></div></div>
 <script>
 const C=document.getElementById('c'),X=C.getContext('2d'),$=id=>document.getElementById(id);
@@ -646,6 +652,38 @@ $('bBoss').onclick=()=>{const s=randFloor();addBoss(s.x,s.y)};$('bDog').onclick=
 function mkDog(e){Object.assign(e,{dog:1,w:'knife',hp:45,mh:45,spdF:1.75,shield:0,pal:null})}
 function mkShield(e){Object.assign(e,{shield:1,w:'pistol',hp:140,mh:140,spdF:.75})}
 const _add=addEnemies;addEnemies=function(n){const k0=G.en.length;_add(n);for(const e of G.en.slice(k0)){const r=G.r();if(r<.15)mkShield(e);else if(r<.27)mkDog(e)}};
+
+// ===== G: interrogation of restrained prisoners (non-graphic) =====
+const PAL_PR={leg:'#3a1010',body:'#9a3030',dark:'#7a2020',skin:'#e0a080',hair:'#3a1010'};
+function mkPris(x,y){const n={kind:'pris',x,y,a:G.r()*TAU,hp:60,pr:0,st2:0,brk:55+G.r()*40,out:0,ko:0,told:0,w:'fists'};G.npcs.push(n);return n}
+function intelTargets(){const t=[];const ms=G.ms;if(ms.target&&ms.target.hp>0)t.push({o:ms.target,l:'target'});for(const e of G.en)if(e.boss&&e!==ms.target&&e.hp>0)t.push({o:e,l:'boss'});
+ for(const h of G.npcs)if(h.kind=='host'&&h.tied&&h.hp>0)t.push({o:h,l:'hostage'});if(G.ev&&!G.ev.got)t.push({o:G.ev,l:'evidence'});const k=G.en.find(e=>e.killer&&e.hp>0);if(k)t.push({o:k,l:'killer'});t.push({o:G.exit,l:'exit'});return t.filter(q=>!G.marks.some(m=>m.o===q.o))}
+function nearPris(){const p=G.p;return G.npcs.find(n=>n.kind=='pris'&&n.hp>0&&Math.hypot(n.x-p.x,n.y-p.y)<46)}
+function interro(act){const n=nearPris(),p=G.p;if(!n||!p.alive)return;if(n.ko>0){txt(n.x,n.y-34,'out cold','#aaa');return}if(n.told){txt(n.x,n.y-34,'"i told you everything"','#ccc');return}
+ const A={threaten:[16,4,0],slap:[26,22,260],taser:[42,42,460]}[act];n.pr+=A[0]*(.8+Math.random()*.4);n.st2+=A[1];n.jolt=.3;p.a=Math.atan2(n.y-p.y,n.x-p.x);
+ if(act=='slap'){p.sw=.22;for(let k=0;k<6;k++)part(n.x,n.y,(Math.random()-.5)*120,(Math.random()-.5)*120,.2,'#fff',1.5,.9)}
+ if(act=='taser'){G.lights.push({x:n.x,y:n.y,r:120,l:.12});for(let k=0;k<20;k++){const a=Math.random()*TAU;part(n.x,n.y,Math.cos(a)*200,Math.sin(a)*200,.2,'#8fdcff',1.5,.9)}}
+ const lines={threaten:['"i don\'t know anything"','"you don\'t scare me"','"…"'],slap:['"argh!"','"ok, ok…"'],taser:['"AAAH!"','"stop!"']};
+ if(A[2]){txt(n.x,n.y-34,lines[act][Math.random()*lines[act].length|0],'#ffd27a');noise(n.x,n.y,A[2])}else txt(n.x,n.y-34,lines.threaten[Math.random()*3|0],'#ccc');
+ if(n.st2>=100){n.ko=18;n.pr*=.5;n.st2=40;txt(n.x,n.y-50,'passed out','#aaa');return}
+ if(n.pr>=n.brk){const ts=intelTargets();n.told=1;const got=ts.slice(0,2);for(const q of got)G.marks.push({o:q.o,l:q.l});txt(n.x,n.y-50,'"'+got.map(q=>q.l).join(' & ')+' — here, on the map"','#9fe09f');G.stats.intel=(G.stats.intel||0)+got.length}}
+function restrain(){const p=G.p;const e=G.en.find(e=>e.stun>0&&e.hp>0&&!e.dog&&!e.boss&&Math.hypot(e.x-p.x,e.y-p.y)<44);if(!e)return 0;e.hp=0;G.en=G.en.filter(q=>q!==e);const n=mkPris(e.x,e.y);n.a=e.a;txt(n.x,n.y-34,'restrained','#fff');if(e.w&&WEAP[e.w]&&e.w!='fists')G.items.push({x:e.x+18,y:e.y,t:e.w});return 1}
+function upG(dt){const n=nearPris();for(const q of G.npcs)if(q.kind=='pris'){q.ko=Math.max(0,q.ko-dt);q.pr=Math.max(0,q.pr-dt*3);q.st2=Math.max(0,q.st2-dt*4);q.jolt=Math.max(0,(q.jolt||0)-dt)}
+ const el=$('intg');const show=!!(n&&G.p.alive&&mode=='play');el.style.display=show?'flex':'none';if(show){$('iBar').style.width=Math.min(100,n.pr/n.brk*100)+'%';$('iStr').style.width=Math.min(100,n.st2)+'%';$('iLbl').textContent=n.ko>0?'out cold · '+Math.ceil(n.ko)+'s':n.told?'talked':'pressure'}}
+function drawG(c,v){const p=G.p;for(const n of G.npcs){if(n.kind!='pris'||n.hp<=0)continue;const x=n.x-c.x+(n.jolt>0?(Math.random()-.5)*4:0),y=n.y-c.y;
+  X.save();X.translate(x,y);X.fillStyle='rgba(0,0,0,.4)';X.beginPath();X.ellipse(3,4,14,12,0,0,TAU);X.fill();X.fillStyle='#5a4a3a';X.strokeStyle='#0c0c0c';X.lineWidth=2.5;X.beginPath();X.roundRect(-13,-13,26,26,4);X.fill();X.stroke();
+  X.fillStyle=PAL_PR.body;X.beginPath();X.arc(0,0,10,0,TAU);X.fill();X.stroke();X.fillStyle=PAL_PR.hair;X.beginPath();X.arc(0,-1,6,0,TAU);X.fill();X.stroke();X.strokeStyle='#c89a50';X.lineWidth=2;X.beginPath();X.moveTo(-10,-3);X.lineTo(10,-2);X.moveTo(-10,4);X.lineTo(10,5);X.stroke();X.restore();
+  X.textAlign='center';X.font='bold 10px Helvetica';X.fillStyle=n.ko>0?'#aaa':n.told?'#9fe09f':'#ffb0b0';X.fillText(n.ko>0?'out cold':n.told?'talked':'prisoner',x,y+28);
+  if(n.ko>0){X.fillText('z z',x+14,y-16-Math.sin(G.t*3)*3)}X.textAlign='left'}
+ for(const m of G.marks){const o=m.o;if(o.hp!=null&&o.hp<=0||o.got)continue;const x=o.x-c.x,y=o.y-c.y;X.strokeStyle='#9fe09f';X.lineWidth=2;X.setLineDash([5,4]);X.beginPath();X.arc(x,y,30,0,TAU);X.stroke();X.setLineDash([]);X.fillStyle='#9fe09f';X.font='bold 11px Helvetica';X.textAlign='center';X.fillText('intel: '+m.l,x,y-36);X.textAlign='left';if(o.seen!=null)o.seen=Math.max(o.seen,.2)}}
+function hudG(){for(const m of G.marks){const o=m.o;if(o.hp!=null&&o.hp<=0||o.got)continue;const sx=(o.x-CAM.x)*ZM,sy=(o.y-CAM.y)*ZM;if(sx>0&&sy>0&&sx<W&&sy<H)continue;const a=Math.atan2(sy-H/2,sx-W/2),r=Math.min(W,H)*.4;X.save();X.translate(W/2+Math.cos(a)*r,H/2+Math.sin(a)*r);X.fillStyle='#9fe09f';X.font='bold 10px Helvetica';X.textAlign='center';X.fillText(m.l,0,-12);X.rotate(a);X.beginPath();X.moveTo(10,0);X.lineTo(-6,-7);X.lineTo(-6,7);X.fill();X.restore()}}
+const _initE=initExt;initExt=function(){_initE();G.marks=[];const s=pickFar(.25,.6);mkPris(s.x,s.y)};
+const _upF=update;update=function(dt){_upF(dt);if(mode=='play')upG(dt);else $('intg').style.display='none'};
+const _hudF=hudDraw;hudDraw=function(){_hudF();hudG()};
+const _drawE=drawExt;drawExt=function(c,v){_drawE(c,v);drawG(c,v)};
+const _pickE=pick;pick=function(){if(!restrain())_pickE()};
+$('iThr').onclick=()=>interro('threaten');$('iSlp').onclick=()=>interro('slap');$('iTas').onclick=()=>interro('taser');
+addEventListener('keydown',e=>{if(mode!='play'||!nearPris())return;const k=e.key;if(k=='z')interro('threaten');if(k=='x')interro('slap');if(k=='c')interro('taser')});
 
 window.__G=()=>G;
 </script></body></html>
